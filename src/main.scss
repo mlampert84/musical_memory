@@ -1,3 +1,21 @@
 body {
     color: red;
 }
+
+.grid-container {
+    display: grid;
+    background-color: blue;
+    padding: 10px;
+}
+
+.grid-item {
+    background-color: purple;
+    text-align: center;
+    height: 80px;
+    line-height: 80px;
+    margin: 5px;
+
+    &:hover {
+        cursor: pointer;
+    }
+}
