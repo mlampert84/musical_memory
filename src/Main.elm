@@ -1,8 +1,8 @@
 module Main exposing (main)
 
-import Browser exposing (sandbox)
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, style)
+import Browser exposing (element)
+import Html exposing (Html, audio, div, h2, source, text)
+import Html.Attributes exposing (class, controls, src, style, type_)
 import List exposing (range)
 
 
@@ -11,7 +11,7 @@ import List exposing (range)
 
 
 main =
-    Browser.sandbox { init = init, update = update, view = view }
+    Browser.element { init = init, subscriptions = subscriptions, update = update, view = view }
 
 
 
@@ -21,12 +21,13 @@ main =
 type alias Model =
     { height : Int
     , width : Int
+    , files : List String
     }
 
 
-init : Model
-init =
-    { height = 6, width = 7 }
+init : List String -> ( Model, Cmd Msg )
+init files =
+    ( { height = 6, width = 7, files = files }, Cmd.none )
 
 
 
@@ -37,19 +38,28 @@ type Msg
     = Change String
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Change newContent ->
-            model
+            ( model, Cmd.none )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
-view model =
+viewGrid : Model -> Html Msg
+viewGrid model =
     let
         cssColumns =
             "repeat( " ++ String.fromInt model.width ++ ", 1fr)"
@@ -70,3 +80,17 @@ makeRow width height =
             div [ class "grid-item" ] [ text (String.fromInt (x + width * (height - 1))) ]
     in
     List.map toDiv <| List.range 1 width
+
+
+view : Model -> Html Msg
+view model =
+    div [] (audioFiles model.files)
+
+
+audioFiles : List String -> List (Html Msg)
+audioFiles files =
+    let
+        toAudioDiv file =
+            div [] [ audio [ controls True ] [ source [ src file, type_ "audio/mpeg" ] [] ], h2 [] [ text file ] ]
+    in
+    List.map toAudioDiv files
