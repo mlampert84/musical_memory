@@ -1,9 +1,11 @@
 module Main exposing (main)
 
 import Browser exposing (element)
+import Card exposing (Card)
 import Html exposing (Html, audio, div, h2, source, text)
 import Html.Attributes exposing (class, controls, src, style, type_)
 import List exposing (range)
+import Random
 
 
 
@@ -21,13 +23,25 @@ main =
 type alias Model =
     { height : Int
     , width : Int
+    , cards : List Card
     , files : List String
+    , randomLetters : List Char
     }
 
 
 init : List String -> ( Model, Cmd Msg )
 init files =
-    ( { height = 6, width = 7, files = files }, Cmd.none )
+    let
+        w =
+            6
+
+        h =
+            7
+
+        initList =
+            Random.generate ShuffledCards (letters (w * h))
+    in
+    ( { height = h, width = w, cards = [], files = files, randomLetters = [] }, initList )
 
 
 
@@ -35,14 +49,28 @@ init files =
 
 
 type Msg
-    = Change String
+    = ShuffledCards (List Char)
+    | ShowCard Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Change newContent ->
+        ShuffledCards files ->
+            ( { model | randomLetters = files }, Cmd.none )
+
+        ShowCard index ->
             ( model, Cmd.none )
+
+
+letter : Random.Generator Char
+letter =
+    Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
+
+
+letters : Int -> Random.Generator (List Char)
+letters length =
+    Random.list length letter
 
 
 
@@ -65,26 +93,22 @@ viewGrid model =
             "repeat( " ++ String.fromInt model.width ++ ", 1fr)"
     in
     div [ class "grid-container", style "grid-template-columns" cssColumns ]
-        (cells model.width model.height)
+        (cards model.width model.height <| List.map String.fromChar model.randomLetters)
 
 
-cells : Int -> Int -> List (Html Msg)
-cells w h =
-    List.concat <| List.map (makeRow w) <| List.range 1 h
+cards : Int -> Int -> List String -> List (Html Msg)
+cards w h files =
+    List.map card <| List.map2 Tuple.pair (List.range 1 (w * h)) files
 
 
-makeRow : Int -> Int -> List (Html Msg)
-makeRow width height =
-    let
-        toDiv x =
-            div [ class "grid-item" ] [ text (String.fromInt (x + width * (height - 1))) ]
-    in
-    List.map toDiv <| List.range 1 width
+card : ( Int, String ) -> Html Msg
+card ( n, file ) =
+    div [ class "grid-item" ] [ text <| String.fromInt n ++ file ]
 
 
 view : Model -> Html Msg
 view model =
-    div [] (audioFiles model.files)
+    div [] [ viewGrid model ]
 
 
 audioFiles : List String -> List (Html Msg)
