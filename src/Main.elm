@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser exposing (element)
-import Card exposing (Card)
+import Card exposing (Card, initCard)
 import Html exposing (Html, audio, div, h2, source, text)
 import Html.Attributes exposing (class, controls, src, style, type_)
 import List exposing (range)
@@ -12,8 +12,9 @@ import Random
 -- MAIN
 
 
+main : Program (List String) Model Msg
 main =
-    Browser.element { init = init, subscriptions = subscriptions, update = update, view = view }
+    Browser.element { init = init, view = view, update = update, subscriptions = subscriptions }
 
 
 
@@ -39,7 +40,7 @@ init files =
             7
 
         initList =
-            Random.generate ShuffledCards (letters (w * h))
+            Random.generate ShuffledCards <| List.map String.fromChar (letters (w * h))
     in
     ( { height = h, width = w, cards = [], files = files, randomLetters = [] }, initList )
 
@@ -49,7 +50,7 @@ init files =
 
 
 type Msg
-    = ShuffledCards (List Char)
+    = ShuffledCards (List String)
     | ShowCard Int
 
 
@@ -61,6 +62,11 @@ update msg model =
 
         ShowCard index ->
             ( model, Cmd.none )
+
+
+fillCards : List String -> List Card
+fillCards files =
+    List.map initCard <| List.indexedMap files
 
 
 letter : Random.Generator Char
@@ -78,7 +84,7 @@ letters length =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.none
 
 
