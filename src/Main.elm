@@ -7,6 +7,7 @@ import Html exposing (Html, audio, div, h2, source, text)
 import Html.Attributes exposing (class, controls, src, style, type_)
 import List exposing (range)
 import Random
+import Random.List exposing (shuffle)
 
 
 
@@ -31,19 +32,28 @@ type alias Model =
     }
 
 
+type alias SelectedCards =
+    ( Maybe Card, Maybe Card )
+
+
 init : List String -> ( Model, Cmd Msg )
 init files =
     let
         w =
-            6
+            3
 
         h =
-            7
+            4
 
         initList =
-            Random.generate ShuffledCards <| letters (w * h)
+            Random.generate ShuffledCards <| shuffle <| doubleList <| List.take ((w * h) // 2) files
     in
     ( { height = h, width = w, cards = Array.empty, files = files, randomLetters = [] }, initList )
+
+
+doubleList : List a -> List a
+doubleList list =
+    list ++ list
 
 
 
