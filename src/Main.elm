@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Array exposing (Array)
 import Browser exposing (element)
 import Card exposing (Card, initCard)
 import Html exposing (Html, audio, div, h2, source, text)
@@ -24,9 +25,9 @@ main =
 type alias Model =
     { height : Int
     , width : Int
-    , cards : List Card
+    , cards : Array Card
     , files : List String
-    , randomLetters : List Char
+    , randomLetters : List String
     }
 
 
@@ -40,9 +41,9 @@ init files =
             7
 
         initList =
-            Random.generate ShuffledCards <| List.map String.fromChar (letters (w * h))
+            Random.generate ShuffledCards <| letters (w * h)
     in
-    ( { height = h, width = w, cards = [], files = files, randomLetters = [] }, initList )
+    ( { height = h, width = w, cards = Array.empty, files = files, randomLetters = [] }, initList )
 
 
 
@@ -58,23 +59,37 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         ShuffledCards files ->
-            ( { model | randomLetters = files }, Cmd.none )
+            ( { model | randomLetters = files, cards = fillCards files }, Cmd.none )
 
         ShowCard index ->
-            ( model, Cmd.none )
+            ( { model | cards = openCard index model.cards }, Cmd.none )
 
 
-fillCards : List String -> List Card
+openCard : Int -> Array Card -> Array Card
+openCard index cards =
+    let
+        card =
+            Array.get index cards
+    in
+    case card of
+        Nothing ->
+            cards
+
+        Just c ->
+            Array.set index (Card.openCard c) cards
+
+
+fillCards : List String -> Array Card
 fillCards files =
-    List.map initCard <| List.indexedMap files
+    Array.fromList <| List.map initCard <| List.indexedMap Tuple.pair files
 
 
-letter : Random.Generator Char
+letter : Random.Generator String
 letter =
-    Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
+    Random.map String.fromChar <| Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
 
 
-letters : Int -> Random.Generator (List Char)
+letters : Int -> Random.Generator (List String)
 letters length =
     Random.list length letter
 
@@ -99,17 +114,17 @@ viewGrid model =
             "repeat( " ++ String.fromInt model.width ++ ", 1fr)"
     in
     div [ class "grid-container", style "grid-template-columns" cssColumns ]
-        (cards model.width model.height <| List.map String.fromChar model.randomLetters)
+        (gridItems model)
 
 
-cards : Int -> Int -> List String -> List (Html Msg)
-cards w h files =
-    List.map card <| List.map2 Tuple.pair (List.range 1 (w * h)) files
+gridItems : Model -> List (Html Msg)
+gridItems model =
+    List.map gridItem <| Array.toList model.cards
 
 
-card : ( Int, String ) -> Html Msg
-card ( n, file ) =
-    div [ class "grid-item" ] [ text <| String.fromInt n ++ file ]
+gridItem : Card -> Html Msg
+gridItem card =
+    div [ class "grid-item" ] [ Card.view ShowCard card ]
 
 
 view : Model -> Html Msg

@@ -10,8 +10,8 @@ body {
 
 .grid-item {}
 
-.closed-card {
-    background-color: purple;
+.card-closed,
+.card-open {
     text-align: center;
     height: 80px;
     line-height: 80px;
@@ -20,6 +20,13 @@ body {
     &:hover {
         cursor: pointer;
     }
+}
 
+.card-closed {
+    background-color: purple;
 
+}
+
+.card-open {
+    background-color: greenyellow;
 }

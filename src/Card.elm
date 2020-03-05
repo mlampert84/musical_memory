@@ -1,7 +1,8 @@
-module Card exposing (Card, initCard)
+module Card exposing (Card, initCard, openCard, view)
 
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class)
+import Html.Events exposing (onClick)
 
 
 type alias Card =
@@ -22,14 +23,19 @@ initCard ( index, file ) =
     Card index file Closed
 
 
-view : msg -> Card -> Html msg
+openCard : Card -> Card
+openCard card =
+    { card | state = Open }
+
+
+view : (Int -> msg) -> Card -> Html msg
 view toggleMsg card =
     case card.state of
         Removed ->
-            text ""
+            text "Removed"
 
         Closed ->
-            div [ class "card-closed" ] [ text <| String.fromInt card.index ]
+            div [ class "card-closed", onClick (toggleMsg card.index) ] [ text <| String.fromInt (card.index + 1) ]
 
         Open ->
-            text ""
+            div [ class "card-open" ] [ text card.file ]
