@@ -1,13 +1,15 @@
 module Main exposing (main)
 
-import Array exposing (Array)
+import Array
 import Browser exposing (element)
-import Card exposing (Card, initCard)
+import Card exposing (Card, Gameboard, fillGameboard, initGameboard)
 import Html exposing (Html, audio, div, h2, source, text)
 import Html.Attributes exposing (class, controls, src, style, type_)
 import List exposing (range)
+import Process
 import Random
 import Random.List exposing (shuffle)
+import Task
 
 
 
@@ -26,14 +28,10 @@ main =
 type alias Model =
     { height : Int
     , width : Int
-    , cards : Array Card
+    , gameboard : Gameboard
     , files : List String
     , randomLetters : List String
     }
-
-
-type alias SelectedCards =
-    ( Maybe Card, Maybe Card )
 
 
 init : List String -> ( Model, Cmd Msg )
@@ -48,7 +46,14 @@ init files =
         initList =
             Random.generate ShuffledCards <| shuffle <| doubleList <| List.take ((w * h) // 2) files
     in
-    ( { height = h, width = w, cards = Array.empty, files = files, randomLetters = [] }, initList )
+    ( { height = h
+      , width = w
+      , gameboard = initGameboard
+      , files = files
+      , randomLetters = []
+      }
+    , initList
+    )
 
 
 doubleList : List a -> List a
@@ -61,37 +66,42 @@ doubleList list =
 
 
 type Msg
-    = ShuffledCards (List String)
+    = DelayCardTurn Int
+    | ShuffledCards (List String)
     | ShowCard Int
+    | CleanCards Gameboard
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        DelayCardTurn index ->
+            ( model, Process.sleep 2000 |> Task.perform (always (ShowCard index)) )
+
         ShuffledCards files ->
-            ( { model | randomLetters = files, cards = fillCards files }, Cmd.none )
+            ( { model | randomLetters = files, gameboard = fillGameboard files }, Cmd.none )
 
         ShowCard index ->
-            ( { model | cards = openCard index model.cards }, Cmd.none )
+            case Card.selectCard model.gameboard index of
+                Card.FirstCard board ->
+                    ( { model | gameboard = board }, Cmd.none )
 
+                Card.SecondCard board ->
+                    ( { model | gameboard = board }, Process.sleep 4000 |> Task.perform (always (CleanCards board)) )
 
-openCard : Int -> Array Card -> Array Card
-openCard index cards =
-    let
-        card =
-            Array.get index cards
-    in
-    case card of
-        Nothing ->
-            cards
+                _ ->
+                    ( model, Cmd.none )
 
-        Just c ->
-            Array.set index (Card.openCard c) cards
+        CleanCards board ->
+            case Card.resolveBoard board of
+                Card.Match gameboard ->
+                    ( { model | gameboard = gameboard }, Cmd.none )
 
+                Card.NoMatch gameboard ->
+                    ( { model | gameboard = gameboard }, Cmd.none )
 
-fillCards : List String -> Array Card
-fillCards files =
-    Array.fromList <| List.map initCard <| List.indexedMap Tuple.pair files
+                _ ->
+                    ( model, Cmd.none )
 
 
 letter : Random.Generator String
@@ -129,7 +139,7 @@ viewGrid model =
 
 gridItems : Model -> List (Html Msg)
 gridItems model =
-    List.map gridItem <| Array.toList model.cards
+    List.map gridItem <| Array.toList model.gameboard.cards
 
 
 gridItem : Card -> Html Msg
