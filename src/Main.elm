@@ -1,10 +1,12 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Array
 import Browser exposing (element)
 import Card exposing (Card, Gameboard, fillGameboard, initGameboard)
 import Html exposing (Html, audio, div, h2, source, text)
 import Html.Attributes exposing (class, controls, src, style, type_)
+import Json.Decode as Decode
+import Json.Encode as Encode
 import List exposing (range)
 import Process
 import Random
@@ -14,6 +16,12 @@ import Task
 
 
 -- MAIN
+
+
+port playFile : Encode.Value -> Cmd msg
+
+
+port playEnded : (() -> msg) -> Sub msg
 
 
 main : Program (List String) Model Msg
@@ -31,7 +39,14 @@ type alias Model =
     , gameboard : Gameboard
     , files : List String
     , randomLetters : List String
+    , gameState : GameState
     }
+
+
+type GameState
+    = AudioPlaying
+    | TeamA
+    | TeamB
 
 
 init : List String -> ( Model, Cmd Msg )
@@ -51,6 +66,7 @@ init files =
       , gameboard = initGameboard
       , files = files
       , randomLetters = []
+      , gameState = TeamA
       }
     , initList
     )
@@ -69,7 +85,7 @@ type Msg
     = DelayCardTurn Int
     | ShuffledCards (List String)
     | ShowCard Int
-    | CleanCards Gameboard
+    | ResolveCards
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -82,23 +98,30 @@ update msg model =
             ( { model | randomLetters = files, gameboard = fillGameboard files }, Cmd.none )
 
         ShowCard index ->
-            case Card.selectCard model.gameboard index of
-                Card.FirstCard board ->
-                    ( { model | gameboard = board }, Cmd.none )
+            if model.gameState == AudioPlaying then
+                ( model, Cmd.none )
 
-                Card.SecondCard board ->
-                    ( { model | gameboard = board }, Process.sleep 4000 |> Task.perform (always (CleanCards board)) )
+            else
+                case Card.selectCard model.gameboard index of
+                    Card.FirstCard board card ->
+                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile (Card.encode card) )
 
-                _ ->
-                    ( model, Cmd.none )
+                    Card.SecondCard board card ->
+                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile (Card.encode card) )
 
-        CleanCards board ->
-            case Card.resolveBoard board of
+                    _ ->
+                        ( model, Cmd.none )
+
+        ResolveCards ->
+            case Card.resolveBoard model.gameboard of
                 Card.Match gameboard ->
-                    ( { model | gameboard = gameboard }, Cmd.none )
+                    ( { model | gameboard = gameboard, gameState = TeamA }, Cmd.none )
 
                 Card.NoMatch gameboard ->
-                    ( { model | gameboard = gameboard }, Cmd.none )
+                    ( { model | gameboard = gameboard, gameState = TeamA }, Cmd.none )
+
+                Card.WaitForNextCard ->
+                    ( { model | gameState = TeamA }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -120,7 +143,7 @@ letters length =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    playEnded (always ResolveCards)
 
 
 

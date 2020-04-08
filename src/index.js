@@ -16,3 +16,13 @@ var app = Elm.Main.init({
     node: document.getElementById('main'),
     flags: audioFiles
 });
+
+app.ports.playFile.subscribe(function(card) {
+    console.log("Now it's time to play:" + card.file)
+    const audio = new Audio(card.file);
+    audio.play();
+    audio.onended = () => {
+        app.ports.playEnded.send(null);
+        console.log("audio ended on card index" + card.index);
+    }
+});

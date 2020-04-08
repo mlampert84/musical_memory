@@ -1,9 +1,11 @@
-module Card exposing (Card, Gameboard, Msg(..), SelectedCards, State(..), changeCards, fillCards, fillGameboard, initCard, initGameboard, resolveBoard, selectCard, view)
+module Card exposing (Card, Gameboard, Msg(..), SelectedCards, State(..), changeCards, encode, fillCards, fillGameboard, initCard, initGameboard, resolveBoard, selectCard, view)
 
 import Array exposing (Array)
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, id)
 import Html.Events exposing (onClick)
+import Json.Decode as Decode
+import Json.Encode as Encode
 
 
 type alias Gameboard =
@@ -29,9 +31,21 @@ fillCards files =
 
 type alias Card =
     { index : Int
-    , file : String
+    , file : File
     , state : State
     }
+
+
+encode : Card -> Encode.Value
+encode card =
+    Encode.object
+        [ ( "file", Encode.string card.file )
+        , ( "index", Encode.int card.index )
+        ]
+
+
+type alias File =
+    String
 
 
 type alias SelectedCards =
@@ -51,8 +65,9 @@ initCard ( index, file ) =
 
 type Msg
     = None
-    | FirstCard Gameboard
-    | SecondCard Gameboard
+    | FirstCard Gameboard Card
+    | SecondCard Gameboard Card
+    | WaitForNextCard
     | Match Gameboard
     | NoMatch Gameboard
 
@@ -63,47 +78,54 @@ selectCard board index =
         newCards =
             changeCards index Open board.cards
 
-        turnedCard =
+        maybeTurnedCard =
             Array.get index newCards
     in
-    case board.selected of
-        ( Nothing, Nothing ) ->
-            FirstCard (Gameboard ( turnedCard, Nothing ) newCards)
-
-        ( Just card, Nothing ) ->
-            if card.index == index then
-                None
-
-            else
-                SecondCard (Gameboard ( Just card, turnedCard ) newCards)
-
-        _ ->
+    case maybeTurnedCard of
+        Nothing ->
             None
+
+        Just turnedCard ->
+            case board.selected of
+                ( Nothing, Nothing ) ->
+                    FirstCard (Gameboard ( Just turnedCard, Nothing ) newCards) turnedCard
+
+                ( Just card, Nothing ) ->
+                    if card.index == index then
+                        None
+
+                    else
+                        SecondCard (Gameboard ( Just card, Just turnedCard ) newCards) turnedCard
+
+                _ ->
+                    None
 
 
 resolveBoard : Gameboard -> Msg
 resolveBoard board =
     case board.selected of
+        ( Just _, Nothing ) ->
+            WaitForNextCard
+
         ( Just card1, Just card2 ) ->
             if card1.file == card2.file then
-                Match (closeBoard board Removed)
+                Match
+                    (Gameboard ( Nothing, Nothing )
+                        (changeCards card2.index Removed <|
+                            changeCards card1.index Removed board.cards
+                        )
+                    )
 
             else
-                NoMatch (closeBoard board Closed)
+                NoMatch
+                    (Gameboard ( Nothing, Nothing )
+                        (changeCards card2.index Closed <|
+                            changeCards card1.index Closed board.cards
+                        )
+                    )
 
         _ ->
             None
-
-
-closeBoard : Gameboard -> State -> Gameboard
-closeBoard board desiredState =
-    case board.selected of
-        ( Just card1, Just card2 ) ->
-            Gameboard ( Nothing, Nothing )
-                (changeCards card2.index desiredState <| changeCards card1.index desiredState board.cards)
-
-        _ ->
-            board
 
 
 changeCards : Int -> State -> Array Card -> Array Card
@@ -127,7 +149,7 @@ view toggleMsg card =
             text "Removed"
 
         Closed ->
-            div [ class "card-closed", onClick (toggleMsg card.index) ] [ text <| String.fromInt (card.index + 1) ]
+            div [ class "card-closed", id card.file, onClick (toggleMsg card.index) ] [ text <| String.fromInt (card.index + 1) ]
 
         Open ->
             div [ class "card-open" ] [ text card.file ]
