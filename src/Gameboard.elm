@@ -1,4 +1,4 @@
-module Gameboard exposing (Model, Msg(..), fill, gridItems, init, update)
+module Gameboard exposing (Model, Msg(..), fill, gridItems, update)
 
 import Array exposing (Array)
 import Card exposing (Card)
@@ -6,28 +6,13 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (class)
 
 
-type alias SelectedCards =
-    ( Maybe Card, Maybe Card )
-
-
 type alias Model =
-    { selected : SelectedCards
-    , cards : Array Card
-    }
-
-
-init : Model
-init =
-    { selected = ( Nothing, Nothing ), cards = Array.empty }
+    Array Card
 
 
 fill : List String -> Model
-fill files =
-    let
-        fillCards =
-            Array.fromList << List.map Card.init << List.indexedMap Tuple.pair
-    in
-    { selected = ( Nothing, Nothing ), cards = fillCards files }
+fill =
+    Array.fromList << List.map Card.init << List.indexedMap Tuple.pair
 
 
 type Msg
@@ -48,22 +33,31 @@ update newCard model =
             resolveBoard model
 
 
+listOpenCards : Model -> List Card
+listOpenCards cards =
+    let
+        isOpen card =
+            card.state == Card.Open
+    in
+    Array.toList << Array.filter isOpen <| cards
+
+
 selectCard : Card -> Model -> ( Model, Msg )
 selectCard card model =
     let
         newCards =
-            changeCard card Card.Open model.cards
+            changeCard card Card.Open model
     in
-    case model.selected of
-        ( Nothing, Nothing ) ->
-            ( { selected = ( Array.get card.index newCards, Nothing ), cards = newCards }, CardTurned card )
+    case listOpenCards model of
+        [] ->
+            ( newCards, CardTurned card )
 
-        ( Just card1, Nothing ) ->
+        [ card1 ] ->
             if card1.index == card.index then
                 ( model, None )
 
             else
-                ( { selected = ( Just card1, Array.get card.index newCards ), cards = newCards }, CardTurned card )
+                ( newCards, CardTurned card )
 
         _ ->
             ( model, None )
@@ -71,27 +65,27 @@ selectCard card model =
 
 resolveBoard : Model -> ( Model, Msg )
 resolveBoard model =
-    case model.selected of
-        ( Just _, Nothing ) ->
+    case listOpenCards model of
+        [ _ ] ->
             ( model, WaitForNextCard )
 
-        ( Just card1, Just card2 ) ->
+        [ card1, card2 ] ->
             if card1.file == card2.file then
-                ( Model ( Nothing, Nothing ) <| changeCards ( card1, card2 ) Card.Removed model.cards, Match )
+                ( changeCards ( card1, card2 ) Card.Removed model, Match )
 
             else
-                ( Model ( Nothing, Nothing ) <| changeCards ( card1, card2 ) Card.Closed model.cards, NoMatch )
+                ( changeCards ( card1, card2 ) Card.Closed model, NoMatch )
 
         _ ->
             ( model, None )
 
 
-changeCards : ( Card, Card ) -> Card.State -> Array Card -> Array Card
+changeCards : ( Card, Card ) -> Card.State -> Model -> Model
 changeCards ( card1, card2 ) state cards =
     changeCard card2 state << changeCard card1 state <| cards
 
 
-changeCard : Card -> Card.State -> Array Card -> Array Card
+changeCard : Card -> Card.State -> Model -> Model
 changeCard card desiredState cards =
     let
         selectedCard =
@@ -107,7 +101,7 @@ changeCard card desiredState cards =
 
 gridItems : (Maybe Card -> msg) -> Model -> List (Html msg)
 gridItems selectMsg model =
-    List.map (gridItem selectMsg) <| Array.toList model.cards
+    List.map (gridItem selectMsg) <| Array.toList model
 
 
 gridItem : (Maybe Card -> msg) -> Card -> Html msg

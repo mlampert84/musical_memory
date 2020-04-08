@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import Array
 import Browser exposing (element)
 import Card exposing (Card)
 import Gameboard
@@ -57,7 +58,7 @@ init files =
     in
     ( { height = h
       , width = w
-      , gameboard = Gameboard.init
+      , gameboard = Array.empty
       , files = files
       , gameState = TeamA
       }
