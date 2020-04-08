@@ -10,12 +10,16 @@ body {
 
 .grid-item {}
 
-.card-closed,
-.card-open {
+.card {
     text-align: center;
     height: 80px;
     line-height: 80px;
     margin: 5px;
+
+}
+
+.card-closed,
+.card-open {
 
     &:hover {
         cursor: pointer;

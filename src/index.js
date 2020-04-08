@@ -17,12 +17,12 @@ var app = Elm.Main.init({
     flags: audioFiles
 });
 
-app.ports.playFile.subscribe(function(card) {
-    console.log("Now it's time to play:" + card.file)
-    const audio = new Audio(card.file);
+app.ports.playFile.subscribe(function(file) {
+    console.log("Now it's time to play:" + file)
+    const audio = new Audio(file);
     audio.play();
     audio.onended = () => {
         app.ports.playEnded.send(null);
-        console.log("audio ended on card index" + card.index);
+        console.log("audio ended on card " + file);
     }
 });

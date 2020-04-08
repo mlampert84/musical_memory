@@ -20,7 +20,7 @@ module.exports = {
                 exclude: [/elm-stuff/, /node_modules/],
                 loader: "elm-webpack-loader",
                 options: {
-                    debug: false
+                    debug: true
                 }
             },
             {

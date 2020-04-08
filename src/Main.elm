@@ -1,24 +1,19 @@
 port module Main exposing (main)
 
-import Array
 import Browser exposing (element)
-import Card exposing (Card, Gameboard, fillGameboard, initGameboard)
-import Html exposing (Html, audio, div, h2, source, text)
-import Html.Attributes exposing (class, controls, src, style, type_)
-import Json.Decode as Decode
-import Json.Encode as Encode
-import List exposing (range)
-import Process
+import Card exposing (Card)
+import Gameboard
+import Html exposing (Html, div)
+import Html.Attributes exposing (class, style)
 import Random
 import Random.List exposing (shuffle)
-import Task
 
 
 
 -- MAIN
 
 
-port playFile : Encode.Value -> Cmd msg
+port playFile : String -> Cmd msg
 
 
 port playEnded : (() -> msg) -> Sub msg
@@ -36,9 +31,8 @@ main =
 type alias Model =
     { height : Int
     , width : Int
-    , gameboard : Gameboard
+    , gameboard : Gameboard.Model
     , files : List String
-    , randomLetters : List String
     , gameState : GameState
     }
 
@@ -63,9 +57,8 @@ init files =
     in
     ( { height = h
       , width = w
-      , gameboard = initGameboard
+      , gameboard = Gameboard.init
       , files = files
-      , randomLetters = []
       , gameState = TeamA
       }
     , initList
@@ -82,59 +75,36 @@ doubleList list =
 
 
 type Msg
-    = DelayCardTurn Int
-    | ShuffledCards (List String)
-    | ShowCard Int
-    | ResolveCards
+    = ShuffledCards (List String)
+    | UpdateCards (Maybe Card)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        DelayCardTurn index ->
-            ( model, Process.sleep 2000 |> Task.perform (always (ShowCard index)) )
-
         ShuffledCards files ->
-            ( { model | randomLetters = files, gameboard = fillGameboard files }, Cmd.none )
+            ( { model | gameboard = Gameboard.fill files }, Cmd.none )
 
-        ShowCard index ->
-            if model.gameState == AudioPlaying then
-                ( model, Cmd.none )
-
-            else
-                case Card.selectCard model.gameboard index of
-                    Card.FirstCard board card ->
-                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile (Card.encode card) )
-
-                    Card.SecondCard board card ->
-                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile (Card.encode card) )
-
-                    _ ->
+        UpdateCards maybeCard ->
+            case Gameboard.update maybeCard model.gameboard of
+                ( board, Gameboard.CardTurned card ) ->
+                    if model.gameState == AudioPlaying then
                         ( model, Cmd.none )
 
-        ResolveCards ->
-            case Card.resolveBoard model.gameboard of
-                Card.Match gameboard ->
-                    ( { model | gameboard = gameboard, gameState = TeamA }, Cmd.none )
+                    else
+                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile card.file )
 
-                Card.NoMatch gameboard ->
-                    ( { model | gameboard = gameboard, gameState = TeamA }, Cmd.none )
+                ( board, Gameboard.Match ) ->
+                    ( { model | gameboard = board, gameState = TeamA }, Cmd.none )
 
-                Card.WaitForNextCard ->
+                ( board, Gameboard.NoMatch ) ->
+                    ( { model | gameboard = board, gameState = TeamA }, Cmd.none )
+
+                ( _, Gameboard.WaitForNextCard ) ->
                     ( { model | gameState = TeamA }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
-
-
-letter : Random.Generator String
-letter =
-    Random.map String.fromChar <| Random.map (\n -> Char.fromCode (n + 97)) (Random.int 0 25)
-
-
-letters : Int -> Random.Generator (List String)
-letters length =
-    Random.list length letter
 
 
 
@@ -143,7 +113,7 @@ letters length =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    playEnded (always ResolveCards)
+    playEnded (always (UpdateCards Nothing))
 
 
 
@@ -157,28 +127,9 @@ viewGrid model =
             "repeat( " ++ String.fromInt model.width ++ ", 1fr)"
     in
     div [ class "grid-container", style "grid-template-columns" cssColumns ]
-        (gridItems model)
-
-
-gridItems : Model -> List (Html Msg)
-gridItems model =
-    List.map gridItem <| Array.toList model.gameboard.cards
-
-
-gridItem : Card -> Html Msg
-gridItem card =
-    div [ class "grid-item" ] [ Card.view ShowCard card ]
+        (Gameboard.gridItems UpdateCards model.gameboard)
 
 
 view : Model -> Html Msg
 view model =
     div [] [ viewGrid model ]
-
-
-audioFiles : List String -> List (Html Msg)
-audioFiles files =
-    let
-        toAudioDiv file =
-            div [] [ audio [ controls True ] [ source [ src file, type_ "audio/mpeg" ] [] ], h2 [] [ text file ] ]
-    in
-    List.map toAudioDiv files
