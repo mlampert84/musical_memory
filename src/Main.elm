@@ -8,6 +8,7 @@ import Html exposing (Html, div)
 import Html.Attributes exposing (class, style)
 import Random
 import Random.List exposing (shuffle)
+import Scoring exposing (Scoring)
 
 
 
@@ -34,14 +35,9 @@ type alias Model =
     , width : Int
     , gameboard : Gameboard.Model
     , files : List String
-    , gameState : GameState
+    , audioPlaying : Bool
+    , scoring : Scoring
     }
-
-
-type GameState
-    = AudioPlaying
-    | TeamA
-    | TeamB
 
 
 init : List String -> ( Model, Cmd Msg )
@@ -60,7 +56,8 @@ init files =
       , width = w
       , gameboard = Array.empty
       , files = files
-      , gameState = TeamA
+      , audioPlaying = False
+      , scoring = Scoring.init
       }
     , initList
     )
@@ -89,20 +86,20 @@ update msg model =
         UpdateCards maybeCard ->
             case Gameboard.update maybeCard model.gameboard of
                 ( board, Gameboard.CardTurned card ) ->
-                    if model.gameState == AudioPlaying then
+                    if model.audioPlaying then
                         ( model, Cmd.none )
 
                     else
-                        ( { model | gameboard = board, gameState = AudioPlaying }, playFile card.file )
+                        ( { model | gameboard = board, audioPlaying = True }, playFile card.file )
 
                 ( board, Gameboard.Match ) ->
-                    ( { model | gameboard = board, gameState = TeamA }, Cmd.none )
+                    ( { model | gameboard = board, audioPlaying = False, scoring = Scoring.addPoint model.scoring }, Cmd.none )
 
                 ( board, Gameboard.NoMatch ) ->
-                    ( { model | gameboard = board, gameState = TeamA }, Cmd.none )
+                    ( { model | gameboard = board, audioPlaying = False, scoring = Scoring.changeTurn model.scoring }, Cmd.none )
 
                 ( _, Gameboard.WaitForNextCard ) ->
-                    ( { model | gameState = TeamA }, Cmd.none )
+                    ( { model | audioPlaying = False }, Cmd.none )
 
                 _ ->
                     ( model, Cmd.none )
@@ -133,4 +130,7 @@ viewGrid model =
 
 view : Model -> Html Msg
 view model =
-    div [] [ viewGrid model ]
+    div []
+        [ Scoring.view model.scoring
+        , div [] [ viewGrid model ]
+        ]
