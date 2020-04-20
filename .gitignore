@@ -3,3 +3,5 @@ elm-stuff/
 dist/
 assets/
 node_modules
+sound_files_to_edit
+.DS_Store

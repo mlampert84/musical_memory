@@ -1,7 +1,7 @@
-module Card exposing (Card, State(..), init, view)
+module Card exposing (Card, File, State(..), init, view)
 
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, id)
+import Html.Attributes exposing (class, classList)
 import Html.Events exposing (onClick)
 
 
@@ -27,14 +27,28 @@ init ( index, file ) =
     Card index file Closed
 
 
-view : (Maybe Card -> msg) -> Card -> Html msg
-view toggleMsg card =
+viewText : Card -> String
+viewText card =
     case card.state of
-        Removed ->
-            div [ class "card", class "card-removed" ] []
-
         Closed ->
-            div [ class "card", class "card-closed", id card.file, onClick (toggleMsg (Just card)) ] [ text <| String.fromInt (card.index + 1) ]
+            String.fromInt (card.index + 1)
 
         Open ->
-            div [ class "card", class "card-open" ] [ text card.file ]
+            String.fromChar <| Char.fromCode 0x0001D11E
+
+        Removed ->
+            ""
+
+
+view : (Maybe Card -> msg) -> Card -> Html msg
+view toggleMsg card =
+    div
+        [ class "card"
+        , classList
+            [ ( "card-removed", card.state == Removed )
+            , ( "card-closed", card.state == Closed )
+            , ( "card-open", card.state == Open )
+            ]
+        , onClick (toggleMsg (Just card))
+        ]
+        [ text (viewText card) ]

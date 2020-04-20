@@ -18,6 +18,8 @@ fill =
 type Msg
     = None
     | CardTurned Card
+    | SameFirstCard Card
+    | SameSecondCard Card
     | WaitForNextCard
     | Match
     | NoMatch
@@ -54,10 +56,17 @@ selectCard card model =
 
         [ card1 ] ->
             if card1.index == card.index then
-                ( model, None )
+                ( model, SameFirstCard card1 )
 
             else
                 ( newCards, CardTurned card )
+
+        [ card1, card2 ] ->
+            if card1.index == card.index || card2.index == card.index then
+                ( model, SameSecondCard card2 )
+
+            else
+                ( model, None )
 
         _ ->
             ( model, None )

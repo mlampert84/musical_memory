@@ -2,13 +2,65 @@ body {
     // color: red;
 }
 
+$closed-color:#6dab82;
+$open-color: #eae8cc;
+
+$team-a: #b84026;
+$team-a-background: #ca8069;
+$team-b: #23447e;
+$team-b-background: #83a0d0;
+
+
 .grid-container {
     display: grid;
-    background-color: blue;
     padding: 10px;
 }
 
 .grid-item {}
+
+
+.body-div {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    height: 100vh;
+    width: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+
+.team-a {
+    background-color: $team-a-background;
+    animation: backgroundA 1s 1;
+
+    @keyframes backgroundA {
+        0% {
+            background-color: $team-b-background;
+        }
+
+        100% {
+            background-color: $team-a-background;
+        }
+    }
+
+
+}
+
+.team-b {
+    background-color: $team-b-background;
+
+    animation: backgroundB 1s 1;
+
+    @keyframes backgroundB {
+        0% {
+            background-color: $team-a-background;
+        }
+
+        100% {
+            background-color: $team-b-background;
+        }
+    }
+}
 
 .card {
     text-align: center;
@@ -24,13 +76,31 @@ body {
     &:hover {
         cursor: pointer;
     }
+
+
 }
 
 .card-closed {
-    background-color: purple;
+    background-color: $closed-color;
 
 }
 
 .card-open {
-    background-color: greenyellow;
+    animation: reveal 1s 1;
+
+    @keyframes reveal {
+        0% {
+            background-color: $closed-color;
+        }
+
+        100% {
+            background-color: $open-color;
+        }
+    }
+
+    background-color: $open-color;
+
+    font-size: 50px;
+
+
 }

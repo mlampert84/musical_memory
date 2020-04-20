@@ -1,4 +1,4 @@
-module Scoring exposing (Scoring, addPoint, changeTurn, init, view)
+module Scoring exposing (Scoring, Team(..), addPoint, changeTurn, init, view)
 
 import Html exposing (Html, div, h2, text)
 import Html.Attributes
