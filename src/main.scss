@@ -19,6 +19,28 @@ $team-b-background: #83a0d0;
 .grid-item {}
 
 
+.flex-container {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 5px;
+}
+
+.flex-item {
+    padding: 0px 5px;
+}
+
+.team-label {}
+
+.score {
+    text-align: center;
+    font-size: 40px;
+}
+
+.team-turn {
+    background: lightgray;
+
+}
+
 .body-div {
     position: fixed;
     top: 0px;

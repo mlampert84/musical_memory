@@ -11,5 +11,5 @@ Todo:
 -Reduce audio quality (bitsize) to get smaller assets    
 -Improve score display
 -Make cards spin? 
--Bottom panel to: Reset Game, Switch to Single Player, Board Size
+-Bottom panel to: Reset Game, Switch to Single Player/Two Player, Board Size
 -Game statistics (missed opportunities, number of tries.  Number of times lucky)
