@@ -4,7 +4,7 @@ import Array
 import Browser exposing (element)
 import Card exposing (Card)
 import Gameboard
-import Html exposing (Html, div)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, classList, style)
 import Random
 import Random.List exposing (shuffle)
@@ -64,10 +64,10 @@ init : List FlagFile -> ( Model, Cmd Msg )
 init files =
     let
         w =
-            3
+            5
 
         h =
-            2
+            4
 
         initList =
             Random.generate ShuffledCards <| shuffle <| doubleList <| List.map .file <| List.take ((w * h) // 2) files
@@ -165,12 +165,13 @@ viewGrid model =
 view : Model -> Html Msg
 view model =
     div
-        [ classList
-            [ ( "body-div", True )
-            , ( "team-a", model.scoring.turn == Scoring.A )
-            , ( "team-b", model.scoring.turn == Scoring.B )
-            ]
-        ]
+        []
         [ Scoring.view model.scoring
         , div [] [ viewGrid model ]
+        , div [ class "navbar" ]
+            [ div [ class "nav-item" ] [ text "Reset Game" ]
+            , div [ class "nav-item" ] [ text "Single Player" ]
+            , div [ class "nav-item" ] [ text "Multiplayer" ]
+            , div [ class "nav-item" ] [ text "Board Size" ]
+            ]
         ]

@@ -81,7 +81,7 @@ view scoring =
 
 teamScore : Team -> Score -> Html msg
 teamScore turn score =
-    div [ class "flex-item", classList [ ( "team-turn", turn == Tuple.first score ) ] ]
-        [ span [ class "team-label" ] [ text <| "Team " ++ teamToText (Tuple.first score) ]
+    div [ class "flex-item" ]
+        [ span [ class "team-label", classList [ ( "team-turn", turn == Tuple.first score ) ] ] [ text <| "Team " ++ teamToText (Tuple.first score) ]
         , div [ class "score" ] [ text <| String.fromInt (Tuple.second score) ]
         ]
